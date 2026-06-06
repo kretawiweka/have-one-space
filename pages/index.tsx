@@ -3,21 +3,46 @@ import { PageSEO } from '@/components/SEO'
 import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import { formatDate } from 'pliny/utils/formatDate'
-import { sortedBlogPost, allCoreContent } from 'pliny/utils/contentlayer'
-import { InferGetStaticPropsType } from 'next'
-import { allBlogs } from 'contentlayer/generated'
-import type { Blog } from 'contentlayer/generated'
+import { GetStaticProps, InferGetStaticPropsType } from 'next'
+import { prisma } from '@/lib/prisma'
+import type { BlogPost } from '@/types/blog'
 
 const MAX_DISPLAY = 5
 
-export const getStaticProps = async () => {
-  const sortedPosts = sortedBlogPost(allBlogs) as Blog[]
-  const posts = allCoreContent(sortedPosts)
+export const getStaticProps: GetStaticProps = async () => {
+  const dbPosts = await prisma.post.findMany({
+    where: { draft: false },
+    orderBy: { publishedAt: 'desc' },
+    take: MAX_DISPLAY,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      tags: true,
+      summary: true,
+      draft: true,
+      publishedAt: true,
+      createdAt: true,
+    },
+  })
 
-  return { props: { posts } }
+  const posts: BlogPost[] = dbPosts.map((p) => ({
+    id: p.id,
+    path: `blog/${p.slug}`,
+    slug: p.slug,
+    title: p.title,
+    date: (p.publishedAt ?? p.createdAt).toISOString(),
+    tags: p.tags,
+    summary: p.summary,
+    draft: p.draft,
+  }))
+
+  const total = await prisma.post.count({ where: { draft: false } })
+
+  return { props: { posts, hasMore: total > MAX_DISPLAY }, revalidate: 60 }
 }
 
-export default function Home({ posts }: InferGetStaticPropsType<typeof getStaticProps>) {
+export default function Home({ posts, hasMore }: InferGetStaticPropsType<typeof getStaticProps>) {
   return (
     <>
       <PageSEO title={siteMetadata.title} description={siteMetadata.description} />
@@ -32,7 +57,7 @@ export default function Home({ posts }: InferGetStaticPropsType<typeof getStatic
         </div>
         <ul className="divide-y divide-gray-200 dark:divide-gray-700">
           {!posts.length && 'No posts found.'}
-          {posts.slice(0, MAX_DISPLAY).map((post) => {
+          {posts.map((post: BlogPost) => {
             const { slug, date, title, summary, tags } = post
             return (
               <li key={slug} className="py-12">
@@ -82,7 +107,7 @@ export default function Home({ posts }: InferGetStaticPropsType<typeof getStatic
           })}
         </ul>
       </div>
-      {posts.length > MAX_DISPLAY && (
+      {hasMore && (
         <div className="flex justify-end text-base font-medium leading-6">
           <Link
             href="/blog"

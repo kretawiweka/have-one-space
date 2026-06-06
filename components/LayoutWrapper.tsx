@@ -1,4 +1,3 @@
-import { Inter } from '@next/font/google'
 import siteMetadata from '@/data/siteMetadata'
 import headerNavLinks from '@/data/headerNavLinks'
 import Logo from '@/data/logo.svg'
@@ -13,14 +12,10 @@ interface Props {
   children: ReactNode
 }
 
-const inter = Inter({
-  subsets: ['latin'],
-})
-
 const LayoutWrapper = ({ children }: Props) => {
   return (
     <SectionContainer>
-      <div className={`${inter.className} flex h-screen flex-col justify-between font-sans`}>
+      <div className="flex h-screen flex-col justify-between font-sans">
         <header className="flex items-center justify-between py-10">
           <div>
             <Link href="/" aria-label={siteMetadata.headerTitle}>

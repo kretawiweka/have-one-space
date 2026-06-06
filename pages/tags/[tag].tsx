@@ -2,36 +2,64 @@ import { TagSEO } from '@/components/SEO'
 import siteMetadata from '@/data/siteMetadata'
 import ListLayout from '@/layouts/ListLayout'
 import { kebabCase } from 'pliny/utils/kebabCase'
-import { getAllTags, allCoreContent } from 'pliny/utils/contentlayer'
-import { InferGetStaticPropsType } from 'next'
-import { allBlogs } from 'contentlayer/generated'
+import { GetStaticPaths, GetStaticProps, InferGetStaticPropsType } from 'next'
+import { prisma } from '@/lib/prisma'
+import type { BlogPost } from '@/types/blog'
 
-export async function getStaticPaths() {
-  const tags = await getAllTags(allBlogs)
+export const getStaticPaths: GetStaticPaths = async () => {
+  const posts = await prisma.post.findMany({
+    where: { draft: false },
+    select: { tags: true },
+  })
+
+  const tagSet = new Set<string>()
+  for (const post of posts) {
+    for (const tag of post.tags) {
+      tagSet.add(kebabCase(tag))
+    }
+  }
 
   return {
-    paths: Object.keys(tags).map((tag) => ({
-      params: {
-        tag,
-      },
-    })),
-    fallback: false,
+    paths: Array.from(tagSet).map((tag) => ({ params: { tag } })),
+    fallback: 'blocking',
   }
 }
 
-export const getStaticProps = async (context) => {
-  const tag = context.params.tag as string
-  const filteredPosts = allCoreContent(
-    allBlogs.filter(
-      (post) => post.draft !== true && post.tags.map((t) => kebabCase(t)).includes(tag)
-    )
-  )
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+  const tag = params?.tag as string
 
-  return { props: { posts: filteredPosts, tag } }
+  const allPosts = await prisma.post.findMany({
+    where: { draft: false },
+    orderBy: { publishedAt: 'desc' },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      tags: true,
+      summary: true,
+      draft: true,
+      publishedAt: true,
+      createdAt: true,
+    },
+  })
+
+  const filteredPosts = allPosts.filter((p) => p.tags.map((t) => kebabCase(t)).includes(tag))
+
+  const posts: BlogPost[] = filteredPosts.map((p) => ({
+    id: p.id,
+    path: `blog/${p.slug}`,
+    slug: p.slug,
+    title: p.title,
+    date: (p.publishedAt ?? p.createdAt).toISOString(),
+    tags: p.tags,
+    summary: p.summary,
+    draft: p.draft,
+  }))
+
+  return { props: { posts, tag }, revalidate: 60 }
 }
 
-export default function Tag({ posts, tag }: InferGetStaticPropsType<typeof getStaticProps>) {
-  // Capitalize first letter and convert space to dash
+export default function TagPage({ posts, tag }: InferGetStaticPropsType<typeof getStaticProps>) {
   const title = tag[0].toUpperCase() + tag.split(' ').join('-').slice(1)
   return (
     <>

@@ -1,7 +1,6 @@
 import { useState, ReactNode } from 'react'
 import { Comments } from 'pliny/comments'
-import { CoreContent } from 'pliny/utils/contentlayer'
-import type { Blog, Authors } from 'contentlayer/generated'
+import type { BlogPost, AuthorDetails } from '@/types/blog'
 import Link from '@/components/Link'
 import PageTitle from '@/components/PageTitle'
 import SectionContainer from '@/components/SectionContainer'
@@ -11,10 +10,6 @@ import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 
-const editUrl = (path) => `${siteMetadata.siteRepo}/blob/master/data/${path}`
-const discussUrl = (path) =>
-  `https://mobile.twitter.com/search?q=${encodeURIComponent(`${siteMetadata.siteUrl}/${path}`)}`
-
 const postDateTemplate: Intl.DateTimeFormatOptions = {
   weekday: 'long',
   year: 'numeric',
@@ -23,15 +18,15 @@ const postDateTemplate: Intl.DateTimeFormatOptions = {
 }
 
 interface LayoutProps {
-  content: CoreContent<Blog>
-  authorDetails: CoreContent<Authors>[]
+  content: BlogPost
+  authorDetails: AuthorDetails[]
   next?: { path: string; title: string }
   prev?: { path: string; title: string }
   children: ReactNode
 }
 
 export default function PostLayout({ content, authorDetails, next, prev, children }: LayoutProps) {
-  const { filePath, path, slug, date, title, tags } = content
+  const { path, slug, date, title, tags } = content
   const basePath = path.split('/')[0]
   const [loadComments, setLoadComments] = useState(false)
 
@@ -132,6 +127,19 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                           <Link href={`/${next.path}`}>{next.title}</Link>
                         </div>
                       </div>
+                    )}
+                  </div>
+                )}
+                {siteMetadata.comments && (
+                  <div
+                    className="pt-6 pb-6 text-center text-gray-700 dark:text-gray-300"
+                    id="comment"
+                  >
+                    {!loadComments && (
+                      <button onClick={() => setLoadComments(true)}>Load Comments</button>
+                    )}
+                    {loadComments && (
+                      <Comments commentsConfig={siteMetadata.comments} slug={slug} />
                     )}
                   </div>
                 )}

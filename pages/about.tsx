@@ -1,22 +1,44 @@
-// import { MDXLayoutRenderer } from '@/components/MDXComponents'
-import { InferGetStaticPropsType } from 'next'
-import { allAuthors } from 'contentlayer/generated'
-import { MDXLayoutRenderer } from 'pliny/mdx-components'
+import { GetStaticProps, InferGetStaticPropsType } from 'next'
+import { MDXRemote, MDXRemoteSerializeResult } from 'next-mdx-remote'
+import { readFile } from 'fs/promises'
+import path from 'path'
+import matter from 'gray-matter'
+import { compileMDX } from '@/lib/mdx'
 import { MDXComponents } from '@/components/MDXComponents'
+import AuthorLayout from '@/layouts/AuthorLayout'
 
-const DEFAULT_LAYOUT = 'AuthorLayout'
-
-export const getStaticProps = async () => {
-  const author = allAuthors.find((p) => p.slug === 'default')
-  return { props: { author } }
+interface AuthorData {
+  name: string
+  avatar?: string
+  occupation?: string
+  company?: string
+  email?: string
+  twitter?: string
+  linkedin?: string
+  github?: string
 }
 
-export default function About({ author }: InferGetStaticPropsType<typeof getStaticProps>) {
+export const getStaticProps: GetStaticProps = async () => {
+  const authorPath = path.join(process.cwd(), 'data', 'authors', 'default.mdx')
+  const raw = await readFile(authorPath, 'utf-8')
+  const { data: frontmatter, content } = matter(raw)
+  const mdxSource = await compileMDX(content)
+
+  return {
+    props: {
+      author: frontmatter as AuthorData,
+      mdxSource,
+    },
+  }
+}
+
+export default function About({
+  author,
+  mdxSource,
+}: InferGetStaticPropsType<typeof getStaticProps>) {
   return (
-    <MDXLayoutRenderer
-      layout={author.layout || DEFAULT_LAYOUT}
-      content={author}
-      MDXComponents={MDXComponents}
-    />
+    <AuthorLayout content={author}>
+      <MDXRemote {...(mdxSource as MDXRemoteSerializeResult)} components={MDXComponents} />
+    </AuthorLayout>
   )
 }
