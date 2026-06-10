@@ -3,14 +3,24 @@ import { PageSEO } from '@/components/SEO'
 import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import { kebabCase } from 'pliny/utils/kebabCase'
-import { getAllTags } from 'pliny/utils/contentlayer'
 import { GetStaticProps, InferGetStaticPropsType } from 'next'
-import { allBlogs } from 'contentlayer/generated'
+import { prisma } from '@/lib/prisma'
 
 export const getStaticProps: GetStaticProps<{ tags: Record<string, number> }> = async () => {
-  const tags = await getAllTags(allBlogs)
+  const posts = await prisma.post.findMany({
+    where: { draft: false },
+    select: { tags: true },
+  })
 
-  return { props: { tags } }
+  const tags: Record<string, number> = {}
+  for (const post of posts) {
+    for (const tag of post.tags) {
+      const key = kebabCase(tag)
+      tags[key] = (tags[key] ?? 0) + 1
+    }
+  }
+
+  return { props: { tags }, revalidate: 60 }
 }
 
 export default function Tags({ tags }: InferGetStaticPropsType<typeof getStaticProps>) {

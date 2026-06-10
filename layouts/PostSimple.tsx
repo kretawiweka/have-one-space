@@ -1,8 +1,7 @@
 import { useState, ReactNode } from 'react'
 import { Comments } from 'pliny/comments'
 import { formatDate } from 'pliny/utils/formatDate'
-import { CoreContent } from 'pliny/utils/contentlayer'
-import type { Blog } from 'contentlayer/generated'
+import type { BlogPost } from '@/types/blog'
 import Link from '@/components/Link'
 import PageTitle from '@/components/PageTitle'
 import SectionContainer from '@/components/SectionContainer'
@@ -11,15 +10,14 @@ import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 
 interface LayoutProps {
-  content: CoreContent<Blog>
+  content: BlogPost
   children: ReactNode
   next?: { path: string; title: string }
   prev?: { path: string; title: string }
 }
 
-export default function PostLayout({ content, next, prev, children }: LayoutProps) {
+export default function PostSimple({ content, next, prev, children }: LayoutProps) {
   const [loadComments, setLoadComments] = useState(false)
-
   const { path, slug, date, title } = content
 
   return (

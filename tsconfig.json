@@ -22,16 +22,14 @@
       "@/layouts/*": ["layouts/*"],
       "@/lib/*": ["lib/*"],
       "@/css/*": ["css/*"],
-      "contentlayer/generated": ["./.contentlayer/generated"]
+      "@/types/*": ["types/*"]
     }
   },
   "include": [
     "next-env.d.ts",
     "**/*.js",
     "**/*.ts",
-    "**/*.tsx",
-    ".contentlayer/generated",
-    ".contentlayer/generated/**/*.json"
+    "**/*.tsx"
   ],
   "exclude": ["node_modules"]
 }

@@ -1,31 +1,50 @@
 import { PageSEO } from '@/components/SEO'
 import siteMetadata from '@/data/siteMetadata'
 import ListLayout from '@/layouts/ListLayout'
-import { allCoreContent, sortedBlogPost } from 'pliny/utils/contentlayer'
 import { POSTS_PER_PAGE } from '../index'
-import { InferGetStaticPropsType } from 'next'
-import { allBlogs } from 'contentlayer/generated'
-import type { Blog } from 'contentlayer/generated'
+import { GetStaticPaths, GetStaticProps, InferGetStaticPropsType } from 'next'
+import { prisma } from '@/lib/prisma'
+import type { BlogPost } from '@/types/blog'
 
-export const getStaticPaths = async () => {
-  const totalPosts = allBlogs
-  const totalPages = Math.ceil(totalPosts.length / POSTS_PER_PAGE)
+export const getStaticPaths: GetStaticPaths = async () => {
+  const total = await prisma.post.count({ where: { draft: false } })
+  const totalPages = Math.ceil(total / POSTS_PER_PAGE)
   const paths = Array.from({ length: totalPages }, (_, i) => ({
     params: { page: (i + 1).toString() },
   }))
 
-  return {
-    paths,
-    fallback: false,
-  }
+  return { paths, fallback: 'blocking' }
 }
 
-export const getStaticProps = async (context) => {
-  const {
-    params: { page },
-  } = context
-  const posts = sortedBlogPost(allBlogs) as Blog[]
-  const pageNumber = parseInt(page as string)
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+  const pageNumber = parseInt(params?.page as string)
+
+  const dbPosts = await prisma.post.findMany({
+    where: { draft: false },
+    orderBy: { publishedAt: 'desc' },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      tags: true,
+      summary: true,
+      draft: true,
+      publishedAt: true,
+      createdAt: true,
+    },
+  })
+
+  const posts: BlogPost[] = dbPosts.map((p) => ({
+    id: p.id,
+    path: `blog/${p.slug}`,
+    slug: p.slug,
+    title: p.title,
+    date: (p.publishedAt ?? p.createdAt).toISOString(),
+    tags: p.tags,
+    summary: p.summary,
+    draft: p.draft,
+  }))
+
   const initialDisplayPosts = posts.slice(
     POSTS_PER_PAGE * (pageNumber - 1),
     POSTS_PER_PAGE * pageNumber
@@ -36,11 +55,8 @@ export const getStaticProps = async (context) => {
   }
 
   return {
-    props: {
-      initialDisplayPosts: allCoreContent(initialDisplayPosts),
-      posts: allCoreContent(posts),
-      pagination,
-    },
+    props: { initialDisplayPosts, posts, pagination },
+    revalidate: 60,
   }
 }
 

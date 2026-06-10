@@ -1,8 +1,8 @@
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import siteMetadata from '@/data/siteMetadata'
-import { CoreContent } from 'pliny/utils/contentlayer'
-import type { Blog, Authors } from 'contentlayer/generated'
+import type { BlogPost, AuthorDetails } from '@/types/blog'
+
 interface CommonSEOProps {
   title: string
   description: string
@@ -98,8 +98,8 @@ export const TagSEO = ({ title, description }: PageSEOProps) => {
   )
 }
 
-interface BlogSeoProps extends CoreContent<Blog> {
-  authorDetails?: CoreContent<Authors>[]
+interface BlogSeoProps extends BlogPost {
+  authorDetails?: AuthorDetails[]
   url: string
 }
 
@@ -173,11 +173,11 @@ export const BlogSEO = ({
     <>
       <CommonSEO
         title={title}
-        description={summary}
+        description={summary ?? siteMetadata.description}
         ogType="article"
         ogImage={featuredImages}
         twImage={twImageUrl}
-        canonicalUrl={canonicalUrl}
+        canonicalUrl={canonicalUrl ?? undefined}
       />
       <Head>
         {date && <meta property="article:published_time" content={publishedAt} />}

@@ -1,15 +1,39 @@
 import siteMetadata from '@/data/siteMetadata'
 import ListLayout from '@/layouts/ListLayout'
 import { PageSEO } from '@/components/SEO'
-import { sortedBlogPost, allCoreContent } from 'pliny/utils/contentlayer'
-import { InferGetStaticPropsType } from 'next'
-import { allBlogs } from 'contentlayer/generated'
-import type { Blog } from 'contentlayer/generated'
+import { GetStaticProps, InferGetStaticPropsType } from 'next'
+import { prisma } from '@/lib/prisma'
+import type { BlogPost } from '@/types/blog'
 
 export const POSTS_PER_PAGE = 5
 
-export const getStaticProps = async () => {
-  const posts = sortedBlogPost(allBlogs) as Blog[]
+export const getStaticProps: GetStaticProps = async () => {
+  const dbPosts = await prisma.post.findMany({
+    where: { draft: false },
+    orderBy: { publishedAt: 'desc' },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      tags: true,
+      summary: true,
+      draft: true,
+      publishedAt: true,
+      createdAt: true,
+    },
+  })
+
+  const posts: BlogPost[] = dbPosts.map((p) => ({
+    id: p.id,
+    path: `blog/${p.slug}`,
+    slug: p.slug,
+    title: p.title,
+    date: (p.publishedAt ?? p.createdAt).toISOString(),
+    tags: p.tags,
+    summary: p.summary,
+    draft: p.draft,
+  }))
+
   const initialDisplayPosts = posts.slice(0, POSTS_PER_PAGE)
   const pagination = {
     currentPage: 1,
@@ -17,11 +41,8 @@ export const getStaticProps = async () => {
   }
 
   return {
-    props: {
-      initialDisplayPosts: allCoreContent(initialDisplayPosts),
-      posts: allCoreContent(posts),
-      pagination,
-    },
+    props: { initialDisplayPosts, posts, pagination },
+    revalidate: 60,
   }
 }
 
