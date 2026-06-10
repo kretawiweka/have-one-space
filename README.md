@@ -105,25 +105,41 @@ The CMS is available at `/admin`.
 | `yarn db:migrate-posts` | Import MDX files from `data/blog/` into the DB |
 | `yarn db:studio` | Open Prisma Studio (DB browser) |
 
-## Deployment (Railway)
+## Deployment (Railway + Supabase)
+
+### Option A: Railway + Supabase (Recommended)
+
+Deploy the app to **Railway** and the database to **Supabase**.
+
+1. **Supabase**: Create a project at [supabase.com](https://supabase.com). Copy the connection string from **Settings > Database**:
+   ```
+   postgresql://postgres:password@db.xxxxxx.supabase.co:5432/postgres?sslmode=require
+   ```
+
+2. **Railway**: Create a new project from your GitHub repo. Railway will auto-detect `railway.json`.
+
+3. **Environment Variables** in Railway dashboard:
+   ```
+   DATABASE_URL        postgresql://postgres:password@db.xxxxxx.supabase.co:5432/postgres?sslmode=require
+   NEXTAUTH_URL      https://your-app.railway.app
+   NEXTAUTH_SECRET   openssl rand -base64 32
+   ADMIN_EMAIL       your@email.com
+   ADMIN_PASSWORD    your-strong-password
+   ADMIN_NAME        Your Name
+   ```
+
+4. **First deploy** — Run in Railway Shell:
+   ```bash
+   npx prisma migrate deploy
+   yarn db:seed
+   yarn db:migrate-posts
+   ```
+
+See `DEPLOYMENT.md` for full details.
+
+### Option B: Railway Postgres (Legacy)
 
 1. Create a Railway project and add a **PostgreSQL** plugin.
 2. Add a service pointing to this repo.
-3. Set the following environment variables in the Railway dashboard:
-
-```
-DATABASE_URL        (provided automatically by Railway Postgres plugin)
-NEXTAUTH_URL        https://your-domain.railway.app
-NEXTAUTH_SECRET     openssl rand -base64 32
-ADMIN_EMAIL         your@email.com
-ADMIN_PASSWORD      your-strong-password
-ADMIN_NAME          Your Name
-```
-
-4. Railway will run `yarn build` on deploy, which includes `next build` and postbuild scripts (RSS + sitemap generation).
-5. After first deploy, run the seed and migration scripts via Railway's shell tab:
-
-```bash
-yarn db:seed
-yarn db:migrate-posts
-```
+3. Set environment variables (Railway provides `DATABASE_URL`).
+4. After first deploy, run `yarn db:seed` and `yarn db:migrate-posts` in Railway Shell.
