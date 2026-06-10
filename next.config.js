@@ -54,7 +54,6 @@ module.exports = () => {
     reactStrictMode: true,
     pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx'],
     experimental: {
-      // Allow @uiw/react-md-editor to import its own CSS from node_modules
       transpilePackages: ['@uiw/react-md-editor', '@uiw/react-markdown-preview'],
     },
     eslint: {
@@ -68,7 +67,38 @@ module.exports = () => {
         },
       ]
     },
-    webpack: (config, options) => {
+    webpack: (config, { isServer }) => {
+      // Find the Next.js CSS rule and allow @uiw packages to import CSS
+      config.module.rules.forEach((rule) => {
+        if (rule.oneOf) {
+          rule.oneOf.forEach((oneOfRule) => {
+            if (
+              oneOfRule.test &&
+              oneOfRule.test.toString().includes('css') &&
+              oneOfRule.issuer
+            ) {
+              // Modify the issuer to allow @uiw packages
+              if (oneOfRule.issuer.not) {
+                const not = Array.isArray(oneOfRule.issuer.not)
+                  ? oneOfRule.issuer.not
+                  : [oneOfRule.issuer.not]
+                oneOfRule.issuer.not = not.map((pattern) => {
+                  if (pattern.toString && pattern.toString().includes('node_modules')) {
+                    return (request) => {
+                      return (
+                        request.includes('/node_modules/') &&
+                        !request.includes('/node_modules/@uiw/')
+                      )
+                    }
+                  }
+                  return pattern
+                })
+              }
+            }
+          })
+        }
+      })
+
       config.module.rules.push({
         test: /\.svg$/,
         use: ['@svgr/webpack'],
