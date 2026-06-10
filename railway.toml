@@ -1,0 +1,13 @@
+[build]
+# Node.js version from .nvmrc
+nodeVersion = "20"
+
+# Build command
+buildCommand = "yarn install --ignore-engines && yarn build"
+
+# Start command
+startCommand = "yarn start"
+
+# Health check
+healthcheckPath = "/"
+healthcheckTimeout = 300
