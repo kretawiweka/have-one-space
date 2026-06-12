@@ -1,9 +1,7 @@
 import { writeFileSync, mkdirSync } from 'fs'
 import path from 'path'
-import { PrismaClient } from '@prisma/client'
 import siteMetadata from '../data/siteMetadata.js'
 
-const prisma = new PrismaClient()
 
 function escapeXml(str) {
   if (!str) return ''
@@ -45,7 +43,7 @@ function generateFeed(posts, feedTitle, feedUrl) {
 </rss>`
 }
 
-const rss = async () => {
+const rss = async (prisma) => {
   const posts = await prisma.post.findMany({
     where: { draft: false },
     orderBy: { publishedAt: 'desc' },
@@ -72,7 +70,6 @@ const rss = async () => {
     writeFileSync(path.join(tagDir, 'feed.xml'), tagFeedXml)
   }
 
-  await prisma.$disconnect()
   console.log('RSS feed generated...')
 }
 

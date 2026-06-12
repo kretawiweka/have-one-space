@@ -1,11 +1,9 @@
 import { writeFileSync } from 'fs'
 import path from 'path'
-import { PrismaClient } from '@prisma/client'
 import siteMetadata from '../data/siteMetadata.js'
 
-const prisma = new PrismaClient()
 
-const sitemap = async () => {
+const sitemap = async (prisma) => {
   const posts = await prisma.post.findMany({
     where: { draft: false },
     orderBy: { publishedAt: 'desc' },
@@ -36,7 +34,6 @@ ${pages
 </urlset>`
 
   writeFileSync(path.join(process.cwd(), 'public', 'sitemap.xml'), xml)
-  await prisma.$disconnect()
   console.log('Sitemap generated...')
 }
 
