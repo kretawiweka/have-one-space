@@ -16,7 +16,6 @@ const sitemap = async () => {
     '',
     '/blog',
     '/tags',
-    '/about',
     '/projects',
     ...posts.map((p) => `/blog/${p.slug}`),
   ]
