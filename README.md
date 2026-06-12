@@ -45,6 +45,7 @@ Create `.env` (read by Prisma CLI) and `.env.local` (read by Next.js):
 **`.env`**
 ```
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/haveone"
+DIRECT_URL="postgresql://postgres:postgres@localhost:5432/haveone"
 ADMIN_EMAIL="your@email.com"
 ADMIN_PASSWORD="your-strong-password"
 ADMIN_NAME="Your Name"
@@ -53,6 +54,7 @@ ADMIN_NAME="Your Name"
 **`.env.local`**
 ```
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/haveone"
+DIRECT_URL="postgresql://postgres:postgres@localhost:5432/haveone"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="generate with: openssl rand -base64 32"
 ADMIN_EMAIL="your@email.com"
@@ -65,13 +67,8 @@ See `.env.example` for all available variables.
 ### 4. Set up the database
 
 ```bash
-# Create tables
 npx prisma migrate dev --name init
-
-# Create admin user (reads ADMIN_* vars from .env)
 yarn --ignore-engines db:seed
-
-# Import existing MDX posts into the DB (one-time)
 yarn --ignore-engines db:migrate-posts
 ```
 
@@ -111,16 +108,16 @@ The CMS is available at `/admin`.
 
 Deploy the app to **Railway** and the database to **Supabase**.
 
-1. **Supabase**: Create a project at [supabase.com](https://supabase.com). Copy the connection string from **Settings > Database**:
-   ```
-   postgresql://postgres:password@db.xxxxxx.supabase.co:5432/postgres?sslmode=require
-   ```
+1. **Supabase**: Create a project at [supabase.com](https://supabase.com). Copy both URLs from **Settings > Database**:
+   - Pooler URL for runtime (`6543`)
+   - Direct URL for migrations (`5432`)
 
 2. **Railway**: Create a new project from your GitHub repo. Railway will auto-detect `railway.json`.
 
 3. **Environment Variables** in Railway dashboard:
    ```
-   DATABASE_URL        postgresql://postgres:password@db.xxxxxx.supabase.co:5432/postgres?sslmode=require
+   DATABASE_URL      postgresql://postgres:password@aws-...pooler.supabase.com:6543/postgres?pgbouncer=true&sslmode=require
+   DIRECT_URL        postgresql://postgres:password@db.xxxxxx.supabase.co:5432/postgres?sslmode=require
    NEXTAUTH_URL      https://your-app.railway.app
    NEXTAUTH_SECRET   openssl rand -base64 32
    ADMIN_EMAIL       your@email.com

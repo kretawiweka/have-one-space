@@ -9,15 +9,9 @@ This guide deploys the app to **Railway** and the database to **Supabase**.
 1. Go to [https://supabase.com](https://supabase.com) and create a new project
 2. Wait for the database to be ready
 3. Go to **Settings > Database** in the Supabase dashboard
-4. Copy the **Connection string** (URI format):
-   ```
-   postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres
-   ```
-5. Replace `[password]` with your database password
-6. Add `?sslmode=require` at the end for secure connection:
-   ```
-   postgresql://postgres:yourpassword@db.xxxxxx.supabase.co:5432/postgres?sslmode=require
-   ```
+4. Copy both connection strings:
+   - Direct (port `5432`) for migrations
+   - Pooler (port `6543`) for runtime
 
 ### 2. Railway (App)
 
@@ -32,7 +26,8 @@ In the Railway dashboard, go to your project **Variables** tab and add:
 
 | Variable | Value | Description |
 |----------|-------|-------------|
-| `DATABASE_URL` | `postgresql://postgres:...supabase.co:5432/postgres?sslmode=require` | Supabase connection string |
+| `DATABASE_URL` | `postgresql://postgres:...@aws-...pooler.supabase.com:6543/postgres?pgbouncer=true&sslmode=require` | Runtime DB URL via pooler |
+| `DIRECT_URL` | `postgresql://postgres:...@db.<project-ref>.supabase.co:5432/postgres?sslmode=require` | Direct DB URL for Prisma migrations |
 | `NEXTAUTH_URL` | `https://your-app-name.railway.app` | Your Railway app URL |
 | `NEXTAUTH_SECRET` | `openssl rand -base64 32` | Generate a secure secret |
 | `ADMIN_EMAIL` | `your@email.com` | Admin login email |
@@ -45,13 +40,8 @@ In the Railway dashboard, go to your project **Variables** tab and add:
 After the first deployment, open the Railway **Shell** tab and run:
 
 ```bash
-# Apply migrations
 npx prisma migrate deploy
-
-# Create admin user
 yarn db:seed
-
-# Import existing MDX posts (optional)
 yarn db:migrate-posts
 ```
 
@@ -76,13 +66,13 @@ In Railway dashboard:
 
 **Build fails?**
 - Check Railway logs in the **Deployments** tab
-- Ensure `DATABASE_URL` is set correctly
+- Ensure `DATABASE_URL` and `DIRECT_URL` are set correctly
 - Verify `NEXTAUTH_SECRET` is set
 
 **Database connection errors?**
-- Confirm Supabase connection string uses port `5432` (not `6543` pooler)
-- Ensure `?sslmode=require` is added
-- Check if your IP is allowed in Supabase **Database > IPv4** settings
+- If using pooler (`6543`), include `pgbouncer=true`
+- Keep `DIRECT_URL` on direct host (`5432`) for migrations
+- Ensure `sslmode=require`
 
 **Admin panel not working?**
 - Run `yarn db:seed` in Railway shell to create the admin user
@@ -93,15 +83,3 @@ In Railway dashboard:
 - `railway.json` — Railway deployment configuration
 - `railway.toml` — Alternative Railway config (Nixpacks)
 - `package.json` — Build scripts (`build`, `start`, `postinstall`)
-
-### 9. SSL with Supabase
-
-Supabase requires SSL/TLS connections. The connection string must include:
-```
-?sslmode=require
-```
-
-If you get SSL errors, try with the full SSL mode:
-```
-?sslmode=require&connection_limit=10&pool_timeout=10
-```

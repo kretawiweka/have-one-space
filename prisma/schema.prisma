@@ -3,11 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  // Supabase uses connection pooling, direct connection is fine for Prisma
-  // If using connection pooler, use: DATABASE_URL with port 6543
-  // For migrations, use the direct connection (port 5432)
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
