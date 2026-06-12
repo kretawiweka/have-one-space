@@ -4,37 +4,32 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-function isBuildPhase(): boolean {
-  if (process.env.NEXT_PHASE === 'phase-production-build') return true
-  // Fallback for Next.js 13 where NEXT_PHASE might not be set at module load time
-  const args = process.argv.join(' ')
-  if (args.includes('next') && args.includes('build')) return true
-  return false
-}
-
-function buildPrismaClient(): PrismaClient {
+function getPrismaClient(): PrismaClient {
   const url = process.env.DATABASE_URL
   if (!url) return new PrismaClient()
 
-  const separator = url.includes('?') ? '&' : '?'
-  // pgbouncer=true disables prepared statements (protocol s0, s1, etc.)
-  // which fixes the "42P05 prepared statement already exists" error
-  // during Next.js static generation where multiple queries run concurrently.
-  const buildUrl = `${url}${separator}pgbouncer=true`
-
-  return new PrismaClient({
-    datasources: {
-      db: {
-        url: buildUrl,
+  // Railway (and most cloud providers) use a connection pooler where
+  // prepared statements get lost between pooled connections. This causes:
+  // - "42P05 prepared statement already exists" during next build
+  // - "26000 prepared statement does not exist" at runtime
+  // pgbouncer=true disables prepared statements in the query engine.
+  if (process.env.NODE_ENV === 'production') {
+    const urlObj = new URL(url)
+    if (!urlObj.searchParams.has('pgbouncer')) {
+      urlObj.searchParams.set('pgbouncer', 'true')
+    }
+    return new PrismaClient({
+      datasources: {
+        db: {
+          url: urlObj.toString(),
+        },
       },
-    },
-  })
+    })
+  }
+
+  return new PrismaClient()
 }
 
-const isBuild = isBuildPhase()
+export const prisma = globalForPrisma.prisma ?? getPrismaClient()
 
-export const prisma = isBuild ? buildPrismaClient() : globalForPrisma.prisma ?? new PrismaClient()
-
-if (!isBuild && process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma
-}
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
